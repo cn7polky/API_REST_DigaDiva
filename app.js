@@ -53,20 +53,6 @@ router.post('/register', (req, res) => {
     })
 })
 
-router.post('/send_post', (req, res) => {
-    const { description, user_id, user_name } = req.body
-    let conn = mysql.createConnection(db)
-    const query = 'INSERT INTO posts (description, user_id, user_name) VALUES (?, ?, ?)'
-    conn.query(query, [description, user_id, user_name], (error, results, fields) => {
-        if (error) {
-            res.json({ error: error.sqlMessage })
-        } else {
-            res.json(results)
-        }
-        conn.end()
-    })
-})
-
 router.get('/users/:id?', (req, res) => {
     let conn = mysql.createConnection(db)
     let filter = ''
@@ -115,6 +101,40 @@ router.post('/register_company', (req, res) => {
         if (error) {
             res.json({ error: error.sqlMessage })
         } else {
+            res.json(results)
+        }
+        conn.end()
+    })
+})
+
+router.post('/send_post', (req, res) => {
+    const { description, local, user_id, user_name } = req.body
+    let conn = mysql.createConnection(db)
+    const query = 'INSERT INTO posts (description, local, user_id, user_name) VALUES (?, ?, ?, ?)'
+    conn.query(query, [description, local, user_id, user_name], (error, results, fields) => {
+        if (error) {
+            res.json({ error: error.sqlMessage })
+        } else {
+            res.json(results)
+        }
+        conn.end()
+    })
+})
+
+router.get('/posts/:id?', (req, res) => {
+    let conn = mysql.createConnection(db)
+    let filter = ''
+    if (req.params.id) filter = ' WHERE id = ' + parseInt(req.params.id)
+    let query = 'SELECT * FROM posts' + filter
+
+    conn.query(query, (error, results, fields) => {
+        if (error) {
+            res.json(error)
+        } else {
+            results.forEach(element => {
+                element.id = null
+                element.user_id = null
+            })
             res.json(results)
         }
         conn.end()
