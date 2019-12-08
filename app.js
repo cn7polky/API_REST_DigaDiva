@@ -35,7 +35,7 @@ router.post('/register', (req, res) => {
     const { name, email, cpf, phone, birthday, pass } = req.body
 
     if (!ValidCPF(cpf))
-        res.json({ error: 'CPF Inválido' })
+        res.send({ error: 'CPF Inválido' })
 
     const d = new Date()
     const number = parseFloat(d.getDay() + d.getMonth() + d.getFullYear() + d.getSeconds())
@@ -45,9 +45,9 @@ router.post('/register', (req, res) => {
     const query = 'INSERT INTO users (name, email, user_name, cpf, phone, birthday, pass) VALUES (?, ?, ?, ?, ?, ?, ?)'
     conn.query(query, [name, email, user_name, cpf, phone, birthday, pass], (error, results, fields) => {
         if (error) {
-            res.json({ error: error.sqlMessage })
+            res.send({ error: error.sqlMessage })
         } else {
-            res.json(results)
+            res.send({ msg: 'Usuário cadastrado com sucesso' })
         }
         conn.end()
     })
@@ -60,8 +60,8 @@ router.get('/users/:id?', (req, res) => {
     let query = 'SELECT * FROM users' + filter
 
     conn.query(query, (error, results, fields) => {
-        if (error) res.json(error)
-        else res.json(results)
+        if (error) res.send(error)
+        else res.send(results)
         conn.end()
     })
 })
@@ -72,53 +72,61 @@ router.post('/login', (req, res) => {
         let conn = mysql.createConnection(db)
         let query = `SELECT * FROM users WHERE email = ? AND pass = ?`
         conn.query(query, [email, pass], (error, results, fields) => {
-            if (error) res.json(error)
+            if (error) res.send(error)
             else if (results.length > 0) {
-                res.json({
+                res.send({
                     id: results[0].id,
                     name: results[0].name,
-                    cpf: results[0].cpf
+                    user_name: results[0].user_name,
+                    cpf: results[0].cpf,
+                    msg: 'logado'
                 })
             } else {
-                res.json({ msg: 'Email ou senha inválidos' })
+                res.send({ msg: 'Email ou senha inválidos' })
             }
             conn.end()
         })
     } else {
-        res.json({ msg: 'Email ou senha não informados', req: req.body })
+        res.send({ msg: 'Email ou senha não informados', req: req.body })
     }
 })
 
 router.post('/register_company', (req, res) => {
     const { fantasy, cnpj, district, street, number, phone, email } = req.body
 
-    if (!ValidCNPJ(cnpj))
-        res.json({ error: 'CNPJ Inválido' })
+    if (!ValidCNPJ(cnpj)) {
+        res.send({ error: 'CNPJ Inválido' })
+    } else {
+        let conn = mysql.createConnection(db)
+        const query = 'INSERT INTO companies (fantasy, cnpj, district, street, number, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        conn.query(query, [fantasy, cnpj, district, street, number, phone, email], (error, results, fields) => {
+            if (error) {
+                res.send({ error: error.sqlMessage })
+            } else {
+                res.send(results)
+            }
+            conn.end()
+        })
+    }
 
-    let conn = mysql.createConnection(db)
-    const query = 'INSERT INTO companies (fantasy, cnpj, district, street, number, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    conn.query(query, [fantasy, cnpj, district, street, number, phone, email], (error, results, fields) => {
-        if (error) {
-            res.json({ error: error.sqlMessage })
-        } else {
-            res.json(results)
-        }
-        conn.end()
-    })
 })
 
 router.post('/send_post', (req, res) => {
-    const { description, local, user_id, user_name } = req.body
-    let conn = mysql.createConnection(db)
-    const query = 'INSERT INTO posts (description, local, user_id, user_name) VALUES (?, ?, ?, ?)'
-    conn.query(query, [description, local, user_id, user_name], (error, results, fields) => {
-        if (error) {
-            res.json({ error: error.sqlMessage })
-        } else {
-            res.json(results)
-        }
-        conn.end()
-    })
+    const { description, local, status, user_id, user_name } = req.body
+    if (description == '' || local == '' || status == '' || user_id == '' || user_name == '') {
+        res.send({ msg: 'Preencha todos os campos corretamente ou faça login novamente' })
+    } else {
+        let conn = mysql.createConnection(db)
+        const query = 'INSERT INTO posts (description, local, status, user_id, user_name) VALUES (?, ?, ?, ?, ?)'
+        conn.query(query, [description, local, status, user_id, user_name], (error, results, fields) => {
+            if (error) {
+                res.send({ error: error.sqlMessage })
+            } else {
+                res.send({ msg: 'Denuncia efetuada com sucesso' })
+            }
+            conn.end()
+        })
+    }
 })
 
 router.get('/posts/:id?', (req, res) => {
@@ -129,13 +137,13 @@ router.get('/posts/:id?', (req, res) => {
 
     conn.query(query, (error, results, fields) => {
         if (error) {
-            res.json(error)
+            res.send(error)
         } else {
             results.forEach(element => {
                 element.id = null
                 element.user_id = null
             })
-            res.json(results)
+            res.send(results)
         }
         conn.end()
     })
